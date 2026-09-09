@@ -1,19 +1,26 @@
 module github.com/Joker666/microservice-demo/apiService
 
-go 1.15
+go 1.25.0
 
 require (
 	github.com/Joker666/microservice-demo/protos v0.0.0-20201123092353-3a5df4f866e5
-	github.com/golang/protobuf v1.4.3 // indirect
 	github.com/grpc-ecosystem/go-grpc-middleware v1.2.2
-	github.com/grpc-ecosystem/grpc-gateway v1.16.0 // indirect
-	github.com/grpc-ecosystem/grpc-gateway/v2 v2.0.1
+	github.com/grpc-ecosystem/grpc-gateway/v2 v2.27.2
 	github.com/joho/godotenv v1.3.0
 	github.com/spf13/cobra v1.1.1
-	golang.org/x/net v0.0.0-20201110031124-69a78807bb2b // indirect
-	golang.org/x/sys v0.0.0-20201113233024-12cec1faf1ba // indirect
-	golang.org/x/text v0.3.4 // indirect
-	google.golang.org/genproto v0.0.0-20201113130914-ce600e9a6f9e // indirect
-	google.golang.org/grpc v1.33.2
-	google.golang.org/protobuf v1.25.0 // indirect
+	google.golang.org/grpc v1.83.2
+)
+
+require (
+	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
+	github.com/inconshreveable/mousetrap v1.0.0 // indirect
+	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+	github.com/stretchr/testify v1.11.1 // indirect
+	golang.org/x/net v0.58.0 // indirect
+	golang.org/x/sys v0.47.0 // indirect
+	golang.org/x/text v0.41.0 // indirect
+	google.golang.org/genproto/googleapis/api v0.0.0-20260526163538-3dc84a4a5aaa // indirect
+	google.golang.org/genproto/googleapis/rpc v0.0.0-20260526163538-3dc84a4a5aaa // indirect
+	google.golang.org/protobuf v1.36.11 // indirect
 )
