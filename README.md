@@ -1,149 +1,292 @@
-[![License](https://img.shields.io/badge/license-SATA-blue)](https://github.com/Joker666/microservice-demo/blob/master/LICENSE)
+# Microservice Demo
 
-![logo](https://i.imgur.com/KpKFXgP.png)
-<h1 align="center">Microservice Demo</h1>
+[![License](https://img.shields.io/badge/license-SATA-blue)](./LICENSE.md)
 
-## Table of Contents
-- [About the project](#about-the-project)
-    - [Motivation](#motivation)
-    - [Features](#features)
-    - [Architecture](#architecture)
-    - [Transport Layer](#transport-layer)
-- [How to run](#how-to-run)
-    - [User Service](#running-nodejs-based-user-service)
-    - [Project Service](#running-python-based-project-service)
-    - [API Service](#running-golang-based-api-service)
-    - [Run Everything](#running-everything-using-docker-compose)
-- [Roadmap](#roadmap)
-- [Contribution](#contribution)
-- [License](#license)
+This repository is a documentation-maintained fork of [Joker666/microservice-demo](https://github.com/Joker666/microservice-demo). It preserves the upstream design and SATA license while making the project easier to evaluate, run, and maintain as a demo repository.
 
-## About the project
-A proof of concept demo of how to write microservices in various technologies and how to bind them together to make one seamless application. The project will keep growing as I keep adding newer technologies to it. Contributions are welcome.
+## Overview
 
-### Motivation
-If you have not been living under the rock for a while, microservice is the defacto architecture to make large scale applications these days. Lot of companies have moved from monolithic architecture to microservice based architecture.
+`microservice-demo` is a polyglot task-management demo built as a small microservice system:
 
-I have been writing microservices for a while. But I remember having little to no resource on the web for how to stick all the different parts together. I had to struggle a lot and find solutions with trial and error. That's why I started writing this repo to demonstrate programmers how they can get started with microservices.
+- **User service** for registration, login, and JWT verification
+- **Project service** for projects and tags
+- **Task service** for tasks and task assignment
+- **API service** as a gRPC gateway/router across the backend services
+- **HTTP gateway** for REST-like access generated from protobuf annotations
 
-### Features
-- **Multiple Stacks**: The application is designed with multiple software stacks. Different services use different languages and databases to demonstration how to build a microservice based application with languages or tools that serve the best purpose for that service
-- **GRPC**: The services communicate with each other using GRPC framework to reduce latency in network calls
-- **Docker**: Each service has it's own dockerfile on how to run the service as standalone and docker-compose to run all at once
-- **API Gateway**: This application has api gateway service which can route api calls to desired services
-- **Proxy Server**: It also comes with a proxy server built with GRPC Gateway to handle HTTP 1.0 requests so that the app can be tested with tools like Postman
-- **JWT Authentication**: This also showcases how you can secure a service with authentication middleware
+It is intended as a learning/demo project rather than a production-ready deployment.
 
-### Architecture
-The project is the world's simplest task management software. A user can register, create projects/tags, add tasks to the projects and tag the tasks into categories. So we have divided the responsibilities into 3 services.
+## Architecture
 
-| Service                                                      | Technologies    | Description                                                  |
-| ------------------------------------------------------------ | --------------- | :----------------------------------------------------------- |
-| [User Service](https://github.com/Joker666/microservice-demo/tree/main/userService) | NodeJS, MongoDB | It handles user registration/login and authentication for other services |
-| [Project Service](https://github.com/Joker666/microservice-demo/tree/main/projectService) | Python, MySQL   | It handles project and tags creation and update              |
-| [Task Service](https://github.com/Joker666/microservice-demo/tree/main/taskService) | Ruby, PostgreSQL  | It handles task creation, add tags to task and assign task to a user |
-| [API Service](https://github.com/Joker666/microservice-demo/tree/main/apiService) | Go              | It handles routing api calls to all the services and a proxy server to handle HTTP 1.0 requests |
+### Service map
 
-We have chosen to use monorepo for all the services since it will ease the process for us.
+| Service | Stack | Data store | Internal port | Docker host port | Responsibility |
+| --- | --- | --- | --- | --- | --- |
+| `userService` | Node.js | MongoDB | `50051` | `8080` | User registration, login, token verification |
+| `projectService` | Python | MySQL | `50052` | `8081` | Project and tag management |
+| `taskService` | Ruby | PostgreSQL | `50053` | `8082` | Task creation, updates, and assignment |
+| `apiService` | Go | None | `50059` | `8083` | gRPC API aggregation and routing |
+| `api-gateway` | Go gRPC-Gateway | None | `9090` | `9090` | HTTP-to-gRPC proxy and Swagger UI |
 
-### Transport Layer
-GRPC is being used as the transport layer among services. This is the modern approach compared to REST api calls. There are plenty of resources online why this is the better choice for writing microservices. Specially reduced latency for network calls. I plan to write one service using REST api to show how you can communicate between services using REST calls as well.
+### Service dependencies
 
-## How to Run
-Since we have used several technologies to make different microservices, you would need few tools installed in your system to run this app. I will detail everything, so that the process is smooth for you.
+- `projectService` depends on `userService`
+- `taskService` depends on `userService` and `projectService`
+- `apiService` depends on all backend services
+- `api-gateway` depends on `apiService`
 
-You can skip to [Run Everything](#running-everything-using-docker-compose) to run all the services without going through the steps of how to run individual services.
+### Repository layout
 
-There are some tools that are required to be installed globally.
-- **Docker** - The container management system we are using. You can install docker from https://www.docker.com/
-- **Protobuf** - prerequisite to installing GRPC. This is used in GRPC for serializing data instead of JSON that we use in REST api calls. You can install the compiler from https://developers.google.com/protocol-buffers.
-- **GRPC** - The transport layer, an RPC framework. You can install GRPC from https://grpc.io/
+```text
+.
+├── apiService/        # Go API server, proxy, Swagger UI assets
+├── projectService/    # Python gRPC project service
+├── taskService/       # Ruby gRPC task service
+├── userService/       # Node.js gRPC user service
+├── protos/            # Shared protobuf definitions and generated Go code
+├── build.sh           # Regenerates protobuf artifacts for all services
+├── up.sh              # Runs build.sh, then starts Docker Compose
+├── docker-compose.yml # Demo stack orchestration
+└── LICENSE.md         # Upstream SATA license
+```
 
-### Running NodeJS based User Service
-This service is written in NodeJS. So, nodejs and npm needs to be installed in the system. We have also used MongoDB as data layer. You can either install MongoDB locally or use docker to run it. You have to update the `.env` file insider `userService` with the MongoDB url to be able to connect to the database. Required tools
-- **NodeJS**, along with it npm
-- **MongoDB**
+## Prerequisites
 
-After that, run `npm install` from within `userService` directory. Make sure MongoDB is running and the url is updated in `.env`. The required compiled proto files are already in `proto` directory.
-Then run the service with `npm run start`
+### For the recommended Docker Compose flow
 
-For more information about how to use client to interact with the server, look into the documentation in [User Service](https://github.com/Joker666/microservice-demo/tree/main/userService)
+- Docker Engine
+- Docker Compose v2 (`docker compose`)
 
-### Running Python based Project Service
-This service is written in Python 3.8. So python 3 needs to be installed in the system. We have also used MySQL as data layer. You can either install MySQL locally or use docker to run it. You have to update the `.env` file insider `projectService` with the MySQL url to be able to connect to the database. We have used `SQLAlchemy` as ORM to access the database.
+### For local per-service development
 
-In python world, it is common to use dedicated environment per project to not pollute the global python environment. Here, we are using `pipenv` to manage dependencies and virtual environment. You do not have to use it if you do not want to, we have included `requirements.txt` as well which is generated using `pipenv lock -r > requirements.txt`. Required tools
-- **Python 3.8**
-- **Pipenv**
-- **MySQL**
+- Node.js and npm for `userService`
+- Python 3.8 for `projectService` (`pipenv` is optional but supported)
+- Ruby 2.7 and Bundler for `taskService`
+- Go 1.15 with `GOPATH` configured for `apiService`
 
-After that, if you are using `pipenv` run `pipenv install`, from within `projectService` directory. If you are not using `pipenv` run 
-`pip install -r requirements.txt`. Make sure MySQL is running and the url is updated in `.env`. The required compiled proto files are already in `proto` directory.
-If you are not already inside the virtual environment, activate it with `pipenv shell`(only required if you are using `pipenv`). Then run the service with `python service.py` or `python3 service.py`
+### For protobuf regeneration
 
-For more information about how to use client to interact with the server, look into the documentation in [Project Service](https://github.com/Joker666/microservice-demo/tree/main/projectService)
+Root-level `./build.sh` regenerates protobuf/client artifacts and requires additional tooling that is **not** needed for a normal Docker Compose run:
 
-### Running Ruby based Task Service
-This service is written in Ruby 2.7. So Ruby needs to be installed in the system. We have also used PostgreSQL as data layer. You can either install PostgreSQL locally or use docker to run it. You have to update the `.env` file insider `taskService` with the PostgreSQL url to be able to connect to the database. We have used [Rom](https://rom-rb.org/) as ORM to access the database. Required tools
-- **Ruby 2.7**
-- **PostgreSQL**
+- `protoc`
+- `grpc_tools_node_protoc`
+- Python `grpcio-tools`
+- `grpc_tools_ruby_protoc`
+- `pipenv`
+- Go gRPC / grpc-gateway plugins available in `GOPATH`
 
-After that, run `bundle install` from within `taskService` directory. Make sure PostgreSQL is running and the url is updated in `.env`. The required compiled proto files are already in `proto` directory. However like the the other two
-services, `taskService` is not independent. It depends on `userService` and `projectService`. So these two services need to be running for `taskService` to run. `.env` needs to be updated with proper URL of those two services. Provided other two services are running, run `ruby server.rb` to start this service.
+## Quick start
 
-For more information about how to use client to interact with the server, look into the documentation in [Task Service](https://github.com/Joker666/microservice-demo/tree/main/taskService)
+The lowest-friction way to run the demo is Docker Compose:
 
-### Running Golang based API Service
-This service the the gateway to all the other services. To run this service, you need to make sure all other services are running properly. This service is written in Go 1.15, and you need to make sure it is installed in the system with `GOROOT` and `GOPATH` configured. Required tools
-- **Go 1.15**
+```bash
+docker compose up --build
+```
 
-I have added convenient `build.sh` the creates the binary and `run.sh` that runs the service. The required protos are imported from outside `protos` folder which is also a go package. Keeping all services' proto files here, we could make it a go package and import them in api service. More information in [API Service](https://github.com/Joker666/microservice-demo/tree/main/apiService)
+Then open:
 
-#### Running the Golang based Proxy Server
-The proxy server is inside `apiService`. This helps us transcode HTTP 1.0 requests to from rpc requests. So that we can use tools like Postman to hit endpoints in this application. If you are using GRPC-Web, you do not need this. But I doubt about it's widespread usage. Required tools
-- **GRPC-Gateway**, you do not need to explicitly install it, it is being taken care of with `build.sh`
+- HTTP gateway: `http://localhost:9090`
+- Swagger UI: `http://localhost:9090/swagger-ui/`
+- OpenAPI document: `http://localhost:9090/swagger.json`
 
-After running `build.sh`, run `$GOPATH/bin/apiService proxy` to start the proxy server. Make sure api service GRPC server is running already.
+To stop the stack:
 
-### Running everything using Docker-Compose
-You can either run each service separately and then interact with the application or use docker-compose to run all of them at once and remove complexity. You do not need anything other than **Docker** installed in the system. Just run
-```docker-compose.yml up --build```
-and it will spin up all the services. If it fails for some reason due to MySQL/MongoDB creating database for the first time, run again. After a few minutes if you `docker ps`, you should see
+```bash
+docker compose down
+```
 
-![List of services](https://i.imgur.com/WypWbA9.png)
+To remove the persisted demo databases as well:
 
-And now you have a set of microservices running that you can access with the proxy server's url `localhost:9090`
+```bash
+docker compose down -v
+```
 
-## Roadmap
-- Write development docs
-- Add task service
-- Add a HTTP 1.0 service
-- Add helm charts and run in Kubernetes cluster
-- Add monitoring
-- Add tracing
-- Add service mesh
+### About `./up.sh`
 
-## Contribution
-Want to contribute? Great!
+`./up.sh` is a convenience wrapper for contributors who want to regenerate artifacts first:
 
-To fix a bug or enhance an existing module, follow these steps:
+```bash
+./up.sh
+```
 
-- Fork the repo
-- Create a new branch (`git checkout -b improve-feature`)
-- Make the appropriate changes in the files
-- Add changes to reflect the changes made
-- Commit your changes (`git commit -am 'Improve feature'`)
-- Push to the branch (`git push origin improve-feature`)
-- Create a Pull Request 
+It runs `./build.sh` before Compose, so it needs the full protobuf toolchain listed above. If you only want to start the demo containers, use `docker compose up --build` directly.
 
-### Bug / Feature Request
-If you find a bug, kindly open an issue [here](https://github.com/Joker666/microservice-demo/issues/new).<br/>
-If you'd like to request/add a new function, feel free to do so by opening an issue [here](https://github.com/Joker666/microservice-demo/issues/new). 
+## Running services individually
 
-## See Also
-- https://github.com/GoogleCloudPlatform/microservices-demo
-- https://github.com/microservices-demo/microservices-demo
+The committed `.env` files contain demo defaults. Review and replace them before using the repo outside local experimentation.
 
-## [License](https://github.com/Joker666/microservice-demo/blob/master/LICENSE.md)
+### User service
 
-MIT © [MD Ahad Hasan](https://github.com/joker666)
+```bash
+cd userService
+npm install
+npm run start
+```
+
+Needs MongoDB and the following settings in `.env`:
+
+- `DB_URI`
+- `DB_NAME`
+- `TOKEN_SECRET`
+- `TOKEN_LIFE`
+- `HOST`
+- `PORT`
+
+### Project service
+
+```bash
+cd projectService
+pipenv install
+pipenv run python service.py
+```
+
+If you do not use `pipenv`:
+
+```bash
+pip install -r requirements.txt
+python service.py
+```
+
+Needs MySQL and these settings in `.env`:
+
+- `DB_URI`
+- `HOST`
+- `PORT`
+
+### Task service
+
+```bash
+cd taskService
+bundle install
+ruby server.rb
+```
+
+Needs PostgreSQL plus running user/project services. Configure:
+
+- `DB_URI`
+- `HOST`
+- `PORT`
+- `USER_ADDRESS`
+- `PROJECT_ADDRESS`
+
+When run in Docker Compose, the container entrypoint uses `./init` to prepare the service before startup.
+
+### API service and proxy
+
+```bash
+cd apiService
+./build.sh
+./run.sh
+```
+
+That starts the gRPC API server. To start the HTTP proxy instead:
+
+```bash
+cd apiService
+./proxy.sh
+```
+
+The API service reads:
+
+- `HOST`
+- `PORT`
+- `USER_ADDRESS`
+- `PROJECT_ADDRESS`
+- `TASK_ADDRESS`
+- `PROXY_PORT` (proxy mode)
+
+## Configuration reference
+
+### Docker Compose defaults
+
+`docker-compose.yml` wires the demo with these container-level defaults:
+
+- MongoDB for `userService`
+- MySQL 5.7 for `projectService`
+- PostgreSQL for `taskService`
+- `api-gateway` published on port `9090`
+
+Host-mapped gRPC ports are:
+
+- `8080` → `userService`
+- `8081` → `projectService`
+- `8082` → `taskService`
+- `8083` → `apiService`
+
+Note that the standalone `apiService/.env` uses `PROXY_PORT=8081`, while Docker Compose overrides the proxy to `9090` to avoid host-port conflicts.
+
+## API and protobuf workflow
+
+The protobuf source of truth lives under `protos/`.
+
+- `protos/user/*.proto` defines the user service contract
+- `protos/project/*.proto` defines the project service contract
+- `protos/task/*.proto` defines the task service contract
+- `protos/api/api.proto` defines the aggregated API and HTTP annotations
+
+Running the root build script:
+
+```bash
+./build.sh
+```
+
+regenerates:
+
+- Node.js stubs in `userService/proto/`
+- Python stubs in `projectService/proto/`
+- Ruby stubs in `taskService/proto/`
+- Go protobuf/gRPC code in `protos/`
+- gRPC-Gateway bindings and `apiService/www/api.swagger.json`
+
+Documented HTTP endpoints are generated from `protos/api/api.proto`, including:
+
+- `POST /v1/user/register`
+- `POST /v1/user/login`
+- `POST /v1/project/create`
+- `GET /v1/project/get/{project_id}`
+- `POST /v1/task/create`
+- `POST /v1/task/update`
+- `GET /v1/project/{project_id}/task/list`
+
+## Troubleshooting
+
+- **`./up.sh` fails with missing tools**: use `docker compose up --build` or install the full protobuf toolchain required by the root `build.sh`.
+- **Compose warns that `version` is obsolete**: this is a Docker Compose v2 warning from the current file format and does not block startup.
+- **Databases are still initializing**: on a first run, wait briefly and restart the affected service or rerun `docker compose up --build`.
+- **Services cannot reach each other in local mode**: verify each `.env` file uses the correct local service addresses and ports.
+- **Swagger UI is blank or missing**: regenerate artifacts with the root `./build.sh` so `apiService/www/api.swagger.json` is present.
+
+## Keeping the fork current
+
+If you want to sync this fork with upstream while preserving fork-specific docs:
+
+```bash
+git remote add upstream https://github.com/Joker666/microservice-demo.git
+git fetch upstream
+git merge upstream/main
+```
+
+After syncing, re-check:
+
+- `README.md` for fork-specific guidance
+- `LICENSE.md` to ensure upstream notices remain intact
+- generated protobuf and Swagger artifacts if upstream proto files changed
+
+## Contributing
+
+Issues and pull requests are welcome for documentation fixes, demo usability improvements, and non-breaking maintenance.
+
+If a change is better suited to the original project, consider contributing it upstream as well:
+
+- Upstream repository: https://github.com/Joker666/microservice-demo
+- This fork: https://github.com/ricardojjulia/microservice-demo
+
+## License and attribution
+
+This fork keeps the upstream [SATA license](./LICENSE.md) and original attribution to **MD Ahad Hasan**. Documentation updates in this repository do not replace or relicense the upstream work.
+
+See also:
+
+- Upstream project: https://github.com/Joker666/microservice-demo
+- Google Cloud microservices demo: https://github.com/GoogleCloudPlatform/microservices-demo
+- microservices-demo reference project: https://github.com/microservices-demo/microservices-demo
